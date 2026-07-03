@@ -1,11 +1,20 @@
 const express = require('express');
 const cors = require('cors');
 const https = require('https');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Helper function to lazy-load Stripe and prevent startup crashes if key is missing or empty
+const getStripeInstance = () => {
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  if (!secretKey) {
+    // Return a dummy instance or throw a descriptive error only when called, not at startup
+    throw new Error("STRIPE_SECRET_KEY environment variable is missing on the Vercel server.");
+  }
+  return require('stripe')(secretKey);
+};
 
 // =========================================================================
 // 1. Stripe Mobile Endpoint (Retained for Android App compatibility)
@@ -16,6 +25,8 @@ app.post('/create-payment-intent', async (req, res) => {
     if (!amount) {
       return res.status(400).json({ error: "Missing amount parameter" });
     }
+    
+    const stripe = getStripeInstance();
     const customer = await stripe.customers.create();
     const ephemeralKey = await stripe.ephemeralKeys.create(
       { customer: customer.id },
@@ -52,6 +63,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
       amount = 2000; // 20.00 RON (O singură materie)
     }
 
+    const stripe = getStripeInstance();
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -86,6 +98,8 @@ app.get('/api/verify-session', async (req, res) => {
     if (!session_id) {
       return res.status(400).json({ error: "Missing session_id query parameter" });
     }
+    
+    const stripe = getStripeInstance();
     const session = await stripe.checkout.sessions.retrieve(session_id);
     if (session.payment_status === 'paid') {
       res.json({ paid: true, planDescription: session.line_items?.data?.[0]?.description || "" });
@@ -159,18 +173,4 @@ app.post('/api/chat', async (req, res) => {
       }
     };
 
-    const apiRequest = new Promise((resolve, reject) => {
-      const reqStream = https.request(options, (resStream) => {
-        let bodyData = '';
-        resStream.on('data', (chunk) => { bodyData += chunk; });
-        resStream.on('end', () => {
-          try {
-            const parsed = JSON.parse(bodyData);
-            resolve(parsed);
-          } catch (e) {
-            reject(new Error(`Failed to parse Gemini response: ${bodyData}`));
-          }
-        });
-      });
-      
-      reqStream.on('error', (err) => { reject(err);
+    const apiRequest = new Promise((res
