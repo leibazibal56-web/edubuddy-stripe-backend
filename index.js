@@ -128,7 +128,7 @@ app.post('/api/chat', async (req, res) => {
     });
 
     // Call official Gemini REST API
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     
     const response = await fetch(geminiUrl, {
       method: 'POST',
@@ -166,4 +166,3 @@ app.get('/', (req, res) => {
 });
 
 module.exports = app;
-
