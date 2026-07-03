@@ -239,14 +239,22 @@ try {
       
       if (data.error) {
         console.error("Gemini API returned error:", data.error);
-        return res.status(500).json({ error: data.error.message });
+        const errMsg = data.error.message || "";
+        if (errMsg.toLowerCase().includes("quota") || errMsg.toLowerCase().includes("limit") || errMsg.toLowerCase().includes("rate") || errMsg.toLowerCase().includes("429")) {
+          return res.status(429).json({ error: "Serverul este momentan supraîncărcat din cauza numărului mare de utilizatori. Te rugăm să reîncerci peste 1 minut. Pregătirea ta este importantă pentru noi! 🎓" });
+        }
+        return res.status(500).json({ error: "Asistentul EduBuddy întâmpină o mică dificultate de conectare cu creierul AI. Te rugăm să reîncerci peste câteva momente. ⚡" });
       }
 
       const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "⚠️ Ne pare rău, nu am putut genera un răspuns. Te rugăm să reîncerci.";
       res.json({ text: aiText });
     } catch (error) {
       console.error("Error in chat proxy:", error.message);
-      res.status(500).json({ error: error.message });
+      const errMsg = error.message || "";
+      if (errMsg.toLowerCase().includes("quota") || errMsg.toLowerCase().includes("limit") || errMsg.toLowerCase().includes("rate") || errMsg.toLowerCase().includes("429")) {
+        return res.status(429).json({ error: "Serverul este momentan supraîncărcat din cauza numărului mare de utilizatori. Te rugăm să reîncerci peste 1 minut. Pregătirea ta este importantă pentru noi! 🎓" });
+      }
+      res.status(500).json({ error: "Asistentul EduBuddy întâmpină o mică dificultate de conectare cu creierul AI. Te rugăm să reîncerci peste câteva momente. ⚡" });
     }
   });
 
