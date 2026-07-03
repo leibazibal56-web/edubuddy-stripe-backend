@@ -139,7 +139,7 @@ app.post('/api/chat', async (req, res) => {
     });
 
     // Call official Gemini REST API
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
     
     const response = await fetch(geminiUrl, {
       method: 'POST',
@@ -173,4 +173,4 @@ app.get('/', (req, res) => {
   res.send('Lex Navigator / EduBuddy Stripe & AI Backend is running on Vercel! 🚀');
 });
 
-module.exports = app;
+module.exports 
