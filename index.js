@@ -20,6 +20,46 @@ try {
   };
 
   // =========================================================================
+  // Diagnostic Endpoint: List all models available to the current API Key
+  // =========================================================================
+  app.get('/api/models', async (req, res) => {
+    try {
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ error: "Gemini API key is not configured on the Vercel backend." });
+      }
+
+      const options = {
+        hostname: 'generativelanguage.googleapis.com',
+        port: 443,
+        path: `/v1/models?key=${apiKey}`,
+        method: 'GET'
+      };
+
+      const apiRequest = new Promise((resolve, reject) => {
+        const reqStream = https.request(options, (resStream) => {
+          let bodyData = '';
+          resStream.on('data', (chunk) => { bodyData += chunk; });
+          resStream.on('end', () => {
+            try {
+              resolve(JSON.parse(bodyData));
+            } catch (e) {
+              reject(new Error(`Failed to parse response: ${bodyData}`));
+            }
+          });
+        });
+        reqStream.on('error', (err) => { reject(err); });
+        reqStream.end();
+      });
+
+      const data = await apiRequest;
+      res.json(data);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // =========================================================================
   // 1. Stripe Mobile Endpoint (Retained for Android App compatibility)
   // =========================================================================
   app.post('/create-payment-intent', async (req, res) => {
@@ -79,7 +119,6 @@ try {
               },
               unit_amount: amount,
             },
-            position: 1,
             quantity: 1,
           },
         ],
@@ -157,7 +196,7 @@ try {
         parts: [{ text: prompt }]
       });
 
-      // Call official Gemini REST API using built-in https module for 100% compatibility
+      // Call official Gemini REST API (using gemini-2.5-flash as the new standard fallback)
       const payload = JSON.stringify({
         contents: contents,
         generationConfig: {
@@ -169,7 +208,7 @@ try {
       const options = {
         hostname: 'generativelanguage.googleapis.com',
         port: 443,
-        path: `/v1/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`,
+        path: `/v1/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
