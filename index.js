@@ -111,6 +111,17 @@ app.post('/api/chat', async (req, res) => {
 
     // Format history for Google Gemini REST API format
     const contents = [];
+
+    // Inject system instructions as a preamble dialogue (compatible with all API versions)
+    contents.push({
+      role: 'user',
+      parts: [{ text: `INSTRUCTIUNI DE SISTEM (Rolul tau): ${systemInstruction}` }]
+    });
+    contents.push({
+      role: 'model',
+      parts: [{ text: "Am înțeles rolul meu de tutore EduBuddy și regulile de corectare/pedagogie socratică. Voi răspunde în conformitate cu acestea." }]
+    });
+
     if (history && Array.isArray(history)) {
       // Keep last 8 messages for token savings and speed
       const recentHistory = history.slice(-8);
@@ -135,9 +146,6 @@ app.post('/api/chat', async (req, res) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: contents,
-        systemInstruction: {
-          parts: [{ text: systemInstruction }]
-        },
         generationConfig: {
           temperature: 0.7,
           maxOutputTokens: 2048
