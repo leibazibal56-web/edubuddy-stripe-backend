@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const https = require('https');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 const app = express();
@@ -138,39 +139,38 @@ app.post('/api/chat', async (req, res) => {
       parts: [{ text: prompt }]
     });
 
-    // Call official Gemini REST API
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
-    
-    const response = await fetch(geminiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: contents,
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 2048
-        }
-      })
+    // Call official Gemini REST API using built-in https module for 100% compatibility
+    const payload = JSON.stringify({
+      contents: contents,
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 2048
+      }
     });
 
-    const data = await response.json();
-    
-    if (data.error) {
-      console.error("Gemini API returned error:", data.error);
-      return res.status(500).json({ error: data.error.message });
-    }
+    const options = {
+      hostname: 'generativelanguage.googleapis.com',
+      port: 443,
+      path: `/v1/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payload)
+      }
+    };
 
-    const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "⚠️ Ne pare rău, nu am putut genera un răspuns. Te rugăm să reîncerci.";
-    res.json({ text: aiText });
-  } catch (error) {
-    console.error("Error in chat proxy:", error.message);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Health check endpoint
-app.get('/', (req, res) => {
-  res.send('Lex Navigator / EduBuddy Stripe & AI Backend is running on Vercel! 🚀');
-});
-
-module.exports 
+    const apiRequest = new Promise((resolve, reject) => {
+      const reqStream = https.request(options, (resStream) => {
+        let bodyData = '';
+        resStream.on('data', (chunk) => { bodyData += chunk; });
+        resStream.on('end', () => {
+          try {
+            const parsed = JSON.parse(bodyData);
+            resolve(parsed);
+          } catch (e) {
+            reject(new Error(`Failed to parse Gemini response: ${bodyData}`));
+          }
+        });
+      });
+      
+      reqStream.on('error', (err) => { reject(err);
