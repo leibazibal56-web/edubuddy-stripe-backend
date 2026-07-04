@@ -100,10 +100,10 @@ try {
     try {
       const { priceId, successUrl, cancelUrl, planName } = req.body;
       
-      // Choose price depending on plan (e.g. all_subjects: 50 RON, single_subject: 20 RON)
-      let amount = 5000; // 50.00 RON (Pachet Complet)
+      // Choose price depending on plan (e.g. all_subjects: 99 RON, single_subject: 39 RON)
+      let amount = 9900; // 99.00 RON (Pachet Complet)
       if (planName === 'single_subject') {
-        amount = 2000; // 20.00 RON (O singură materie)
+        amount = 3900; // 39.00 RON (O singură materie)
       }
 
       const stripe = getStripeInstance();
